@@ -11,60 +11,39 @@ function Authy(apiKey, api_url) {
     this.apiURL = api_url || "https://api.authy.com";
 }
 
-Authy.prototype.register_user = function (email, cellphone, country_code, send_sms_install_link, callback) {
+Authy.prototype.register_user = function (email, cellphone, country_code, send_sms_install_link) {
     var country = "1";
     var send_install_link = true;
-    if (arguments.length > 4) {
-        country = country_code;
-        send_install_link = send_sms_install_link;
-    }
-    else if (arguments.length == 4) {
-        callback = send_sms_install_link;
-        if (typeof country_code == "boolean") {
-            send_install_link = country_code;
-        }
-        else {
-            country = country_code;
-        }
-    }
-    else {
-        callback = country_code;
-    }
+    if(country_code) country = country_code;
+    if(send_sms_install_link) send_install_link = send_sms_install_link;
 
     this._request("post", "/protected/json/users/new", {
             "user[email]": email,
             "user[cellphone]": cellphone,
             "user[country_code]": country
         },
-        callback,
         {
           send_install_link_via_sms: send_install_link
         }
     );
 };
 
-Authy.prototype.delete_user = function (id, callback) {
-    this._request("post", "/protected/json/users/delete/" + querystring.escape(id), {}, callback);
+Authy.prototype.delete_user = function (id) {
+    this._request("post", "/protected/json/users/delete/" + querystring.escape(id), {});
 };
 
-Authy.prototype.user_status = function (id, callback) {
-    this._request("get", "/protected/json/users/" + querystring.escape(id) + "/status", {}, callback);
+Authy.prototype.user_status = function (id) {
+    this._request("get", "/protected/json/users/" + querystring.escape(id) + "/status", {});
 };
 
-Authy.prototype.verify = function (id, token, force, callback) {
+Authy.prototype.verify = function (id, token, force) {
     var qs = {};
-
-    if (arguments.length > 3) {
-        qs.force = force;
-    } else {
-        callback = force;
-    }
+    if(force) qs.force = force;
 
     cleanToken = String(token).replace(/\D/g, "").substring(0, 16)
 
     if (cleanToken === '' || cleanToken == null) {
-        callback(new Error("argument 'token' cannot be empty, null, or undefined"));
-        return;
+        return (new Error("argument 'token' cannot be empty, null, or undefined"));
     }
 
     // Overwrite the default body to check the response.
@@ -75,43 +54,30 @@ Authy.prototype.verify = function (id, token, force, callback) {
             }
             res = null
         }
-        callback(err, res)
+        return(err, res)
     }
     this._request("get", "/protected/json/verify/" + querystring.escape(cleanToken) + "/" + querystring.escape(id), {}, check_body_callback, qs);
 };
 
-Authy.prototype.request_sms = function (id, force, callback) {
+Authy.prototype.request_sms = function (id, force) {
     var qs = {};
+    if(force) qs.force = force;
 
-    if (arguments.length > 2) {
-        qs.force = force;
-    } else {
-        callback = force;
-    }
-
-    this._request("get", "/protected/json/sms/" + querystring.escape(id), {}, callback, qs);
+    this._request("get", "/protected/json/sms/" + querystring.escape(id), {}, qs);
 };
 
-Authy.prototype.request_call = function (id, force, callback) {
+Authy.prototype.request_call = function (id, force) {
     var qs = {};
+    if(force) qs.force = force;
 
-    if (arguments.length > 2) {
-        qs.force = force;
-    } else {
-        callback = force;
-    }
-
-    this._request("get", "/protected/json/call/" + querystring.escape(id), {}, callback, qs);
+    this._request("get", "/protected/json/call/" + querystring.escape(id), {}, qs);
 };
 
 Authy.prototype.phones = function() {
     self = this;
     return {
-        verification_start: function(phone_number, country_code, params, callback) {
-            if (arguments.length == 3) {
-                callback = params;
-                params = {}
-            } else if (typeof params !== "object") {
+        verification_start: function(phone_number, country_code, params) {
+            if (typeof params !== "object") {
                 params = {via: params}
             }
 
@@ -123,34 +89,34 @@ Authy.prototype.phones = function() {
                 custom_message: params.custom_message
             };
 
-            self._request("post", "/protected/json/phones/verification/start", options, callback);
+            self._request("post", "/protected/json/phones/verification/start", options);
         },
 
-        verification_check: function(phone_number, country_code, verification_code, callback) {
+        verification_check: function(phone_number, country_code, verification_code) {
             options = {
                 phone_number: phone_number,
                 country_code: country_code,
                 verification_code: verification_code
             };
-            self._request("get", "/protected/json/phones/verification/check", options, callback);
+            self._request("get", "/protected/json/phones/verification/check", options);
         },
 
-        info: function(phone_number, country_code, callback) {
+        info: function(phone_number, country_code) {
             options = {
                 phone_number: phone_number,
                 country_code: country_code
             };
-            self._request("get", "/protected/json/phones/info", options, callback);
+            self._request("get", "/protected/json/phones/info", options);
         }
     };
 };
 
-Authy.prototype.check_approval_status= function (uuid,callback){
+Authy.prototype.check_approval_status= function (uuid){
     var url="/onetouch/json/approval_requests/"+uuid;
-    this._request("get", url, {}, callback);
+    this._request("get", url, {});
 };
 
-Authy.prototype.send_approval_request= function (id,user_payload,hidden_details,logos,callback){
+Authy.prototype.send_approval_request= function (id,user_payload,hidden_details,logos){
     var url="/onetouch/json/users/"+querystring.escape(id)+"/approval_requests";
 
     var message_parameters = {
@@ -169,11 +135,11 @@ Authy.prototype.send_approval_request= function (id,user_payload,hidden_details,
         message_parameters['seconds_to_expire'] = user_payload.seconds_to_expire;
     }
 
-    this._request("post", "/onetouch/json/users/"+querystring.escape(id)+"/approval_requests", message_parameters, callback);
+    this._request("post", "/onetouch/json/users/"+querystring.escape(id)+"/approval_requests", message_parameters);
 
 };
 
-Authy.prototype._request = function(type, path, params, callback, qs) {
+Authy.prototype._request = function(type, path, params, qs) {
     qs = qs || {}
     qs['api_key'] = this.apiKey;
 
@@ -192,26 +158,14 @@ Authy.prototype._request = function(type, path, params, callback, qs) {
         strictSSL: true
     }
 
-    var callback_check = function (err, res, body) {
-        if (!err) {
-            if(res.statusCode === 200) {
-                callback(null, body);
-            } else {
-                callback(body);
-            }
-        } else {
-            callback(err);
-        }
-    };
-
     switch(type) {
 
         case "post":
-            request.post(options, callback_check);
+            return request.post(options, callback_check);
             break;
 
         case "get":
-            request.get(options, callback_check);
+            return request.get(options, callback_check);
             break;
     }
 };
