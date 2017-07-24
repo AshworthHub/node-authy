@@ -1,4 +1,4 @@
-var request = require('request');
+var request = require('request-promise');
 var querystring = require("querystring");
 var VERSION = "1.1"
 
@@ -17,7 +17,7 @@ Authy.prototype.register_user = function (email, cellphone, country_code, send_s
     if(country_code) country = country_code;
     if(send_sms_install_link) send_install_link = send_sms_install_link;
 
-    this._request("post", "/protected/json/users/new", {
+    return this._request("post", "/protected/json/users/new", {
             "user[email]": email,
             "user[cellphone]": cellphone,
             "user[country_code]": country
@@ -75,21 +75,22 @@ Authy.prototype.request_call = function (id, force) {
 
 Authy.prototype.phones = function() {
     self = this;
+    console.log('phone');
     return {
         verification_start: function(phone_number, country_code, params) {
-            if (typeof params !== "object") {
-                params = {via: params}
-            }
 
-            options = {
-                phone_number: phone_number,
-                country_code: country_code,
-                via: params.via || "sms",
-                locale: params.locale,
-                custom_message: params.custom_message
-            };
+            options = Object.assign({},
+                {
+                    phone_number: phone_number,
+                    country_code: country_code,
+                    via: "sms",
+                    locale: params.locale,
+                    custom_message: params.custom_message
+                },
+                params
+            );
 
-            self._request("post", "/protected/json/phones/verification/start", options);
+            return self._request("post", "/protected/json/phones/verification/start", options);
         },
 
         verification_check: function(phone_number, country_code, verification_code) {
@@ -98,7 +99,7 @@ Authy.prototype.phones = function() {
                 country_code: country_code,
                 verification_code: verification_code
             };
-            self._request("get", "/protected/json/phones/verification/check", options);
+            return self._request("get", "/protected/json/phones/verification/check", options);
         },
 
         info: function(phone_number, country_code) {
@@ -106,7 +107,7 @@ Authy.prototype.phones = function() {
                 phone_number: phone_number,
                 country_code: country_code
             };
-            self._request("get", "/protected/json/phones/info", options);
+            return self._request("get", "/protected/json/phones/info", options);
         }
     };
 };
@@ -140,6 +141,7 @@ Authy.prototype.send_approval_request= function (id,user_payload,hidden_details,
 };
 
 Authy.prototype._request = function(type, path, params, qs) {
+    let response;
     qs = qs || {}
     qs['api_key'] = this.apiKey;
 
@@ -161,11 +163,13 @@ Authy.prototype._request = function(type, path, params, qs) {
     switch(type) {
 
         case "post":
-            return request.post(options);
+            response = request.post(options);
             break;
 
         case "get":
-            return request.get(options);
+            response = request.get(options);
             break;
     }
+
+    return response;
 };
