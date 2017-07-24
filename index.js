@@ -161,11 +161,11 @@ Authy.prototype._request = function(type, path, params, qs) {
     switch(type) {
 
         case "post":
-            return request.post(options, callback_check);
+            return request.post(options);
             break;
 
         case "get":
-            return request.get(options, callback_check);
+            return request.get(options);
             break;
     }
 };
